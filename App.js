@@ -6,7 +6,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import{CategoryProvider} from "./src/services/category/CategoryContext";
 import { createStackNavigator } from "@react-navigation/stack";
 import HomeScreen from "./src/screens/HomeScreen";
-
+import RegisterScreen from "./src/screens/RegisterScreen";
 
 import {
     useFonts as useOswald,
@@ -15,6 +15,7 @@ import {
 import { useFonts as useLato, Lato_400Regular } from "@expo-google-fonts/lato";
 import CategoryScreen from "./src/screens/CategoryScreen";
 import LoginScreen from "./src/screens/LoginScreen";
+import AuthenticationContextProvider from "./src/services/authentication/AuthenticationContext";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -69,14 +70,17 @@ export default function App() {
     if (!oswaldLoaded || !latoLoaded) {
         return null;
     }
-  return (
-      <CategoryProvider>
-          <NavigationContainer>
-              <Stack.Navigator screenOptions={{ headerShown: false }}>
-                  <Stack.Screen name="Login" component={LoginScreen} />
-                    <Stack.Screen name="Main" component={MainTabs} />
-              </Stack.Navigator>
-          </NavigationContainer>
-      </CategoryProvider>
-  );
+    return (
+        <AuthenticationContextProvider>
+            <CategoryProvider>
+                <NavigationContainer>
+                    <Stack.Navigator screenOptions={{ headerShown: false }}>
+                        <Stack.Screen name="Login" component={LoginScreen} />
+                        <Stack.Screen name="Register" component={RegisterScreen} />
+                        <Stack.Screen name="Main" component={MainTabs} />
+                    </Stack.Navigator>
+                </NavigationContainer>
+            </CategoryProvider>
+        </AuthenticationContextProvider>
+    );
 }

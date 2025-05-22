@@ -3,33 +3,37 @@ import {
     View,
     Text,
     TextInput,
-    TouchableOpacity,
     StyleSheet,
-    ActivityIndicator,
     Alert,
     Button,
 } from "react-native";
 
 import { AuthenticationContext } from "../services/authentication/AuthenticationContext";
 
-const LoginScreen = ({ navigation }) => {
+const RegisterScreen = ({ navigation }) => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
 
-    const { onLogin, error, isLoading } = useContext(AuthenticationContext);
+    const { onRegister, error } = useContext(AuthenticationContext);
 
-    const handleLogin = () => {
-        if (!email || !password) {
-            Alert.alert("Hata", "Lütfen e-posta ve şifre giriniz.");
+    const handleRegister = () => {
+        if (!email || !password || !confirmPassword) {
+            Alert.alert("Hata", "Lütfen tüm alanları doldurunuz.");
             return;
         }
 
-        onLogin(email, password);
+        if (password !== confirmPassword) {
+            Alert.alert("Hata", "Şifreler eşleşmiyor.");
+            return;
+        }
+
+        onRegister(email, password);
     };
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Giriş Yap</Text>
+            <Text style={styles.title}>Kayıt Ol</Text>
 
             <TextInput
                 style={styles.input}
@@ -49,24 +53,31 @@ const LoginScreen = ({ navigation }) => {
                 autoCapitalize="none"
             />
 
+            <TextInput
+                style={styles.input}
+                placeholder="Şifre Tekrar"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry
+                autoCapitalize="none"
+            />
+
             {error && <Text style={styles.errorText}>{error}</Text>}
 
-            {isLoading ? (
-                <ActivityIndicator size="large" color="tomato" />
-            ) : (
-                <>
+            <View style={styles.buttonContainer}>
+                <View>
                     <Button
-                        title="Giriş Yap"
-                        onPress={handleLogin}
+                            title="Kayıt Ol"
+                            onPress={handleRegister}
                     />
-                    <View style={styles.registerContainer}>
-                        <Button
-                            title="Hesabın yok mu? Kayıt ol"
-                            onPress={() => navigation.navigate("Register")}
-                        />
-                    </View>
-                </>
-            )}
+                </View>
+
+                <Button
+                    title="Zaten hesabın var mı? Giriş yap"
+                    onPress={() => navigation.navigate("Login")}
+                />
+            </View>
+
         </View>
     );
 };
@@ -94,29 +105,16 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         marginBottom: 10,
     },
-    button: {
-        backgroundColor: "tomato",
-        padding: 10,
-        borderRadius: 10,
-        width: "100%",
-        alignItems: "center",
-    },
-    buttonText: {
-        color: "#fff",
-        fontSize: 16,
-        fontWeight: "bold",
-    },
     errorText: {
         color: "red",
         marginBottom: 10,
     },
-    error: {
-        color: "red",
-        marginTop: 10,
+    buttonContainer: {
+        flexDirection: "Column",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingHorizontal: 10,
     },
-    registerContainer: {
-        marginTop: 10,
-    }
 });
 
-export default LoginScreen;
+export default RegisterScreen;
