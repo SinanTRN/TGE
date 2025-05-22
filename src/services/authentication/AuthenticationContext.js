@@ -1,5 +1,6 @@
 import React, { createContext, useState } from "react";
-import { auth } from "../../firebase/FirebaseConfig";
+import { auth,db } from "../../firebase/FirebaseConfig";
+import{doc,setDoc} from "firebase/firestore";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -7,6 +8,7 @@ import {
   onAuthStateChanged
 } from "firebase/auth";
 import {getFirebaseErrorMessage} from "../../utils/FirebaseErrorMessages";
+
 
 export const AuthenticationContext = createContext();
 
@@ -38,10 +40,22 @@ export default function AuthenticationContextProvider({ children }) {
       });
   };
 
-  const onRegister = (email, password) => {
+  const onRegister =  (email, password,name,surname,nickname) => {
     setIsLoading(true);
     createUserWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
+      .then(async (userCredential) => {
+        const user=userCredential.user;
+        await setDoc(doc(db,"users",user.uid),{
+           email:email,
+            name:name,
+            nickname:nickname,
+            surname:surname,
+            phone:"",
+            adress:"",
+            photoURL:"",
+            totalDonations:0,
+            createdAt: new Date()
+        });
         setUser(userCredential.user);
         setError(null);
         setIsLoading(false);

@@ -22,6 +22,7 @@ import HomeScreen from "./src/screens/HomeScreen";
 import CategoryScreen from "./src/screens/CategoryScreen";
 
 import { useContext } from "react";
+import ProfileScreen from "./src/screens/ProfileScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -66,6 +67,7 @@ const AppNavigator = () => {
                     <Stack.Screen name="Register" component={RegisterScreen} />
                 </>
             )}
+            <Stack.Screen name="Profile" component={ProfileScreen} />
         </Stack.Navigator>
     );
 };

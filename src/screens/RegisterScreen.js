@@ -16,6 +16,9 @@ const RegisterScreen = ({ navigation }) => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [name, setName] = useState("");
+    const [surname, setSurname] = useState("");
+    const [nickname, setNickname] = useState("");
 
     const { onRegister, error,setError } = useContext(AuthenticationContext);
     useFocusEffect(
@@ -24,7 +27,7 @@ const RegisterScreen = ({ navigation }) => {
         })
     );
     const handleRegister = () => {
-        if (!email || !password || !confirmPassword) {
+        if (!email || !password || !confirmPassword||!name||!surname||!nickname) {
             Alert.alert("Hata", "Lütfen tüm alanları doldurunuz.");
             return;
         }
@@ -33,13 +36,34 @@ const RegisterScreen = ({ navigation }) => {
             Alert.alert("Hata", "Şifreler eşleşmiyor.");
             return;
         }
-
-        onRegister(email, password);
+        onRegister(email, password,name,surname,nickname);
     };
 
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Kayıt Ol</Text>
+
+            <TextInput
+                style={styles.input}
+                placeholder="İsim"
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words"
+            />
+            <TextInput
+                style={styles.input}
+                placeholder="Soyisim"
+                value={surname}
+                onChangeText={setSurname}
+                autoCapitalize="words"
+            />
+            <TextInput
+                style={styles.input}
+                placeholder="Kullanıcı Adı"
+                value={nickname}
+                onChangeText={setNickname}
+                autoCapitalize="words"
+            />
 
             <TextInput
                 style={styles.input}

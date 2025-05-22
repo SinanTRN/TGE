@@ -1,10 +1,11 @@
 import React from "react";
-import {View,StyleSheet,Text,Image} from "react-native";
+import {View, StyleSheet, Text, Image, TouchableOpacity} from "react-native";
 import {Platform as platform} from "expo-modules-core/src";
 
 const isUriImage = (imageSource) => {
-    return imageSource.match(/\.(jpeg|jpg|gif|png)$/) != null;
-}
+    return typeof imageSource === "string" && (imageSource.startsWith("http") || imageSource.startsWith("data:image"));
+};
+
 
 const localImages={
     deneme:require('../../assets/Images/deneme.jpg'),
@@ -13,11 +14,13 @@ const localImages={
 
 const localImageCreator = (imageName) => localImages[imageName];
 
-const UserInfo=({name,email,profileImage})=>{
+const UserInfo=({name,email,profileImage,onAvatarPress})=>{
     return (
             <View style={styles.container}>
-                <Image source={isUriImage(profileImage)?{uri:profileImage}:localImageCreator(profileImage)}
-                       style={styles.image} resizeMode={"stretch"} />
+                <TouchableOpacity onPress={onAvatarPress}>
+                    <Image source={isUriImage(profileImage)?{uri:profileImage}:localImageCreator(profileImage)}
+                           style={styles.image} resizeMode={"stretch"} />
+                </TouchableOpacity>
                 <View>
                     <Text style={styles.name}>{name}</Text>
                     {email && <Text style={styles.email}>{email}</Text>}
