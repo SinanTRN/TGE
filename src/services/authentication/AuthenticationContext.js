@@ -6,6 +6,7 @@ import {
   signOut,
   onAuthStateChanged
 } from "firebase/auth";
+import {getFirebaseErrorMessage} from "../../utils/FirebaseErrorMessages";
 
 export const AuthenticationContext = createContext();
 
@@ -31,8 +32,9 @@ export default function AuthenticationContextProvider({ children }) {
         setIsLoading(false);
       })
       .catch((err) => {
-        setIsLoading(false);
-        setError(err.message);
+          const message = getFirebaseErrorMessage(err.code);
+          setError(message);
+          setIsLoading(false);
       });
   };
 
@@ -41,11 +43,14 @@ export default function AuthenticationContextProvider({ children }) {
     createUserWithEmailAndPassword(auth, email, password)
       .then((userCredential) => {
         setUser(userCredential.user);
+        setError(null);
         setIsLoading(false);
       })
       .catch((err) => {
-        setIsLoading(false);
-        setError(err.message);
+          const message = getFirebaseErrorMessage(err.code);
+          setError(message);
+          setIsLoading(false);
+          setUser(null); // Eğer oturum sırasında bir hata oluştuysa user nesnesi oluşturma
       });
   };
 
@@ -61,6 +66,7 @@ export default function AuthenticationContextProvider({ children }) {
         user,
         isLoading,
         error,
+          setError,
         onLogin,
         onRegister,
         onLogout,

@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, {useState, useContext, useCallback} from "react";
 import {
     View,
     Text,
@@ -11,12 +11,18 @@ import {
 } from "react-native";
 
 import { AuthenticationContext } from "../services/authentication/AuthenticationContext";
+import {useFocusEffect} from "@react-navigation/native";
 
 const LoginScreen = ({ navigation }) => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
-    const { onLogin, error, isLoading } = useContext(AuthenticationContext);
+    const { onLogin, error, isLoading,setError } = useContext(AuthenticationContext);
+    useFocusEffect(
+        useCallback(() => {
+            setError(null);
+        }, [])
+    );
 
     const handleLogin = () => {
         if (!email || !password) {

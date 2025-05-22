@@ -1,4 +1,5 @@
-import React, { useState, useContext } from "react";
+import React, {useState, useContext} from "react";
+import {useCallback} from "react";
 import {
     View,
     Text,
@@ -9,14 +10,19 @@ import {
 } from "react-native";
 
 import { AuthenticationContext } from "../services/authentication/AuthenticationContext";
+import {useFocusEffect} from "@react-navigation/native";
 
 const RegisterScreen = ({ navigation }) => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
-    const { onRegister, error } = useContext(AuthenticationContext);
-
+    const { onRegister, error,setError } = useContext(AuthenticationContext);
+    useFocusEffect(
+        useCallback(()=>{
+            setError(null);
+        })
+    );
     const handleRegister = () => {
         if (!email || !password || !confirmPassword) {
             Alert.alert("Hata", "Lütfen tüm alanları doldurunuz.");
@@ -71,10 +77,10 @@ const RegisterScreen = ({ navigation }) => {
                             onPress={handleRegister}
                     />
                 </View>
-
-                <Button
+                <View style={{height:10}}/>
+                <Button style={{marginTop:10}}
                     title="Zaten hesabın var mı? Giriş yap"
-                    onPress={() => navigation.navigate("Login")}
+                    onPress={() => navigation.goBack()}
                 />
             </View>
 
@@ -110,7 +116,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     buttonContainer: {
-        flexDirection: "Column",
+        flexDirection: "column",
         justifyContent: "space-between",
         alignItems: "center",
         paddingHorizontal: 10,
