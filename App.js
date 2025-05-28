@@ -23,6 +23,7 @@ import CategoryScreen from "./src/screens/CategoryScreen";
 
 import { useContext } from "react";
 import ProfileScreen from "./src/screens/ProfileScreen";
+import MapScreen from "./src/screens/MapScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -47,7 +48,7 @@ const MainTabs = () => (
     >
         <Tab.Screen name="Home" component={HomeScreen} />
         <Tab.Screen name="Categories" component={CategoryScreen} />
-        <Tab.Screen name="Map" component={Map} />
+        <Tab.Screen name="Map" component={MapScreen} />
         <Tab.Screen name="Menu" component={Menu} />
     </Tab.Navigator>
 );
