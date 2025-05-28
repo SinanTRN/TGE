@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useContext } from "react";
 import {
     View, Text, StyleSheet, Image, TextInput, ActivityIndicator,
-    ScrollView, TouchableOpacity
+    ScrollView, TouchableOpacity, Platform
 } from "react-native";
 import { getUserProfile, updateUserProfile,updateUserPhoto } from "../services/firestore/UserService";
 import { AuthenticationContext } from "../services/authentication/AuthenticationContext";
 import{Alert} from 'react-native';
 import * as ImagePicker from "expo-image-picker";
 import {uploadToCloudinary} from "../services/cloudinary/CloudinaryService";
+import FloatingBackButton from "../ui/FloatingBackButton";
 
 
 const ProfileScreen = () => {
@@ -34,9 +35,21 @@ const ProfileScreen = () => {
     }, []);
 
     const pickImage = async () => {
+            Alert.alert(
+                "Fotoğraf Seçimi",
+                "Lütfen bir seçenek seçin",
+                [
+                    { text: "İptal", style: "cancel" },
+                    { text: "Galeriden Seç", onPress: pickFromGallery },
+                    { text: "Kamera ile Çek", onPress: pickFromCamera },
+                ]
+            );
+    };
+
+    const pickFromGallery = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-            Alert.alert('İzin gerekiyor', 'Galeriye erişim izni gerekiyor');
+        if (status !== "granted") {
+            Alert.alert("İzin gerekiyor", "Galeriye erişim izni gerekiyor");
             return;
         }
 
@@ -50,40 +63,43 @@ const ProfileScreen = () => {
 
         if (!result.canceled) {
             const selectedAsset = result.assets[0];
-            try {
-                setSaving(true);
-                const imageUrl = await uploadToCloudinary(selectedAsset.base64);
-                await updateUserPhoto(user.uid, imageUrl);
-                setProfile(prev => ({ ...prev, photoURL: imageUrl }));
-                setForm(prev => ({ ...prev, photoURL: imageUrl }));
-            } catch (error) {
-                Alert.alert('Hata', 'Fotoğraf yüklenirken bir hata oluştu');
-            } finally {
-                setSaving(false);
-            }
+            await uploadAndSetPhoto(selectedAsset.base64);
         }
     };
-    const uploadImageAsync = async (uri) => {
+
+    const pickFromCamera = async () => {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== "granted") {
+            Alert.alert("İzin gerekiyor", "Kameraya erişim izni gerekiyor");
+            return;
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.5,
+            base64: true,
+        });
+
+        if (!result.canceled) {
+            const capturedAsset = result.assets[0];
+            await uploadAndSetPhoto(capturedAsset.base64);
+        }
+    };
+
+    const uploadAndSetPhoto = async (base64Image) => {
         try {
-            const response = await fetch(uri);
-            const blob = await response.blob();
-
-            const storageRef = ref(storage, `profilePictures/${user.uid}.jpg`);
-            await uploadBytes(storageRef, blob);
-
-            const downloadURL = await getDownloadURL(storageRef);
-
-            // Firestore'a kaydet
-            await updateUserPhoto(user.uid, downloadURL);
-
-            // State güncelle
-            setProfile((prev) => ({ ...prev, photoURL: downloadURL }));
-            setForm((prev) => ({ ...prev, photoURL: downloadURL }));
-        } catch (err) {
-            console.error("Fotoğraf yüklenemedi:", err);
+            setSaving(true);
+            const imageUrl = await uploadToCloudinary(base64Image);
+            await updateUserPhoto(user.uid, imageUrl);
+            setProfile(prev => ({...prev, photoURL: imageUrl}));
+            setForm(prev => ({...prev, photoURL: imageUrl}));
+        } catch (error) {
+            Alert.alert("Hata", "Fotoğraf yüklenirken bir hata oluştu");
+        } finally {
+            setSaving(false);
         }
-    };
-
+    }
     const handleCancelEdit = () => {
         Alert.alert(
             "Düzenleme İptal",
@@ -145,52 +161,55 @@ const ProfileScreen = () => {
     );
 
     return (
-        <ScrollView contentContainerStyle={styles.container}>
-            <View style={styles.avatarWrapper}>
-                {profile?.photoURL ? (
-                    <Image source={{ uri: profile.photoURL }} style={styles.avatar} />
-                ) : (
-                    <View style={styles.avatarPlaceholder}>
-                        <Text style={styles.initials}>👤</Text>
-                    </View>
-                )}
-                <TouchableOpacity onPress={pickImage}>
-                    <Text style={styles.editPhoto}>🖼 Fotoğrafı Değiştir</Text>
-                </TouchableOpacity>
-            </View>
-            <View style={styles.titleContainer}>
-                <Text style={styles.title}>Kullanıcı Bilgileri</Text>
-            </View>
-            <View style={styles.userInformationWrapper}>
-                {renderField("Kullanıcı Adı", "nickname")}
-                {renderField("Ad", "name")}
-                {renderField("Soyad", "surname")}
-                {renderField("Telefon", "phone")}
-                {renderField("Adres", "address")}
-            </View>
-
-            <View style={{ flexDirection: "row", gap: 10, marginTop: 20 }}>
-                {!editing ? (
-                    <TouchableOpacity style={styles.editBtn} onPress={() => setEditing(true)}>
-                        <Text style={styles.editBtnText}>✏️ Profili Düzenle</Text>
+        <View style={{flex:1}}>
+            <FloatingBackButton />
+            <ScrollView contentContainerStyle={styles.container}>
+                <View style={styles.avatarWrapper}>
+                    {profile?.photoURL ? (
+                        <Image source={{ uri: profile.photoURL }} style={styles.avatar} />
+                    ) : (
+                        <View style={styles.avatarPlaceholder}>
+                            <Text style={styles.initials}>👤</Text>
+                        </View>
+                    )}
+                    <TouchableOpacity onPress={pickImage}>
+                        <Text style={styles.editPhoto}>🖼 Fotoğrafı Değiştir</Text>
                     </TouchableOpacity>
-                ) : (
-                    <>
-                        <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
-                            <Text style={styles.saveBtnText}>{saving ? "Kaydediliyor..." : "💾 Kaydet"}</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.cancelBtn} onPress={handleCancelEdit}>
-                            <Text style={styles.cancelBtnText}>❌ Geri</Text>
-                        </TouchableOpacity>
-                    </>
-                )}
-            </View>
-            <View style={styles.TotalDonations}>
-                <Text style={styles.title}>Toplam Bağış: </Text>
-                <Text style={styles.DonationsValue}>{profile?.totalDonations || 0} TL</Text>
-            </View>
+                </View>
+                <View style={styles.titleContainer}>
+                    <Text style={styles.title}>Kullanıcı Bilgileri</Text>
+                </View>
+                <View style={styles.userInformationWrapper}>
+                    {renderField("Kullanıcı Adı", "nickname")}
+                    {renderField("Ad", "name")}
+                    {renderField("Soyad", "surname")}
+                    {renderField("Telefon", "phone")}
+                    {renderField("Adres", "address")}
+                </View>
 
-        </ScrollView>
+                <View style={{ flexDirection: "row", gap: 10, marginTop: 20 }}>
+                    {!editing ? (
+                        <TouchableOpacity style={styles.editBtn} onPress={() => setEditing(true)}>
+                            <Text style={styles.editBtnText}>✏️ Profili Düzenle</Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <>
+                            <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
+                                <Text style={styles.saveBtnText}>{saving ? "Kaydediliyor..." : "💾 Kaydet"}</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.cancelBtn} onPress={handleCancelEdit}>
+                                <Text style={styles.cancelBtnText}>❌ Geri</Text>
+                            </TouchableOpacity>
+                        </>
+                    )}
+                </View>
+                <View style={styles.TotalDonations}>
+                    <Text style={styles.title}>Toplam Bağış: </Text>
+                    <Text style={styles.DonationsValue}>{profile?.totalDonations || 0} TL</Text>
+                </View>
+
+            </ScrollView>
+        </View>
     );
 };
 
@@ -201,6 +220,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#f8eced",
         height: "100%",
     },
+
     TotalDonations: {
         flexDirection: "row",
         width: "100%",
@@ -208,6 +228,18 @@ const styles = StyleSheet.create({
         padding: 10,
         borderRadius: 10,
         marginTop: 20,
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: '100%',
+        paddingHorizontal: 20,
+        marginBottom: 10,
+    },
+    headerTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginLeft: 10,
     },
     DonationsValue: {
         fontSize: 18,
