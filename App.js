@@ -2,7 +2,7 @@ import { StatusBar } from "expo-status-bar";
 import { Text } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { createStackNavigator } from "@react-navigation/stack";
+import {CardStyleInterpolators, createStackNavigator} from "@react-navigation/stack";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import {
@@ -65,7 +65,7 @@ const AppNavigator = () => {
             ) : (
                 <>
                     <Stack.Screen name="Login" component={LoginScreen} />
-                    <Stack.Screen name="Register" component={RegisterScreen} />
+                    <Stack.Screen name="Register" component={RegisterScreen} options={{cardStyleInterpolator:CardStyleInterpolators.forRevealFromBottomAndroid}} />
                 </>
             )}
             <Stack.Screen name="Profile" component={ProfileScreen} />
