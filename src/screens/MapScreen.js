@@ -1,23 +1,31 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Alert, Text, Image } from "react-native";
+import { View, StyleSheet, Alert, Text, Button, TextInput, KeyboardAvoidingView, Platform } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
-import { donationPoints, volunteerPoints } from "../utils/PointsData";
-import { getMapPreview, getAddress } from "../utils/Location";
+import { openDBAsync, init, insertLocation, fetchAllLocations } from "../utils/Places-db";
+import { getAddress } from "../utils/Location";
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import TypeSelector from "../ui/TypeSelector";
 
 const MapScreen = () => {
     const [selectedLocation, setSelectedLocation] = useState(null);
     const [initialRegion, setInitialRegion] = useState(null);
     const [address, setAddress] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
+    const [locations, setLocations] = useState([]);
+    const [title, setTitle] = useState("");
+    const [type, setType] = useState("donation");
 
-    // Konum izinleri ve başlangıç bölgesi
     useEffect(() => {
-        getCurrentLocation();
+        (async () => {
+            await openDBAsync();
+            await init();
+            await getCurrentLocation();
+            const savedLocations = await fetchAllLocations();
+            setLocations(savedLocations);
+        })();
     }, []);
 
     const getCurrentLocation = async () => {
-        setIsLoading(true);
         try {
             const { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== "granted") {
@@ -28,12 +36,10 @@ const MapScreen = () => {
             const location = await Location.getCurrentPositionAsync({});
             updateLocation({
                 latitude: location.coords.latitude,
-                longitude: location.coords.longitude
+                longitude: location.coords.longitude,
             });
         } catch (error) {
             Alert.alert("Hata", "Konum alınamadı");
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -44,8 +50,8 @@ const MapScreen = () => {
             latitudeDelta: 0.01,
             longitudeDelta: 0.01,
         });
-            const addr = await getAddress(coords.latitude, coords.longitude);
-            setAddress(addr);
+        const addr = await getAddress(coords.latitude, coords.longitude);
+        setAddress(addr);
     };
 
     const handleMapPress = (event) => {
@@ -53,46 +59,46 @@ const MapScreen = () => {
         updateLocation({ latitude, longitude });
     };
 
+    const saveLocation = async () => {
+        if (!title || !selectedLocation) {
+            Alert.alert("Eksik Bilgi", "Başlık ve konum gerekli.");
+            return;
+        }
+
+        const newLocation = {
+            title,
+            type,
+            address,
+            lat: selectedLocation.latitude,
+            lng: selectedLocation.longitude,
+        };
+
+        await insertLocation(newLocation);
+        const updatedLocations = await fetchAllLocations();
+        setLocations(updatedLocations);
+        Alert.alert("Başarılı", "Konum kaydedildi!");
+        setTitle("");
+    };
+
     return (
-        <View style={styles.container}>
-            {isLoading ? (
-                <Text>Konum bilgisi alınıyor...</Text>
-            ) : initialRegion ? (
+        <View style={{ flex: 1 }}>
+            {initialRegion ? (
                 <>
                     <MapView
                         style={styles.map}
                         initialRegion={initialRegion}
                         onPress={handleMapPress}
                     >
-                        {/* Bağış Noktaları */}
-                        {donationPoints.map((point) => (
+                        {locations.map((loc) => (
                             <Marker
-                                key={`donation-${point.id}`}
-                                coordinate={{
-                                    latitude: point.lat,
-                                    longitude: point.lng,
-                                }}
-                                title={point.title}
-                                description={point.address}
-                                pinColor="red"
+                                key={loc.id}
+                                coordinate={{ latitude: loc.lat, longitude: loc.lng }}
+                                title={loc.title}
+                                description={loc.address}
+                                pinColor={loc.type === "donation" ? "red" : "blue"}
                             />
                         ))}
 
-                        {/* Gönüllülük Noktaları */}
-                        {volunteerPoints.map((point) => (
-                            <Marker
-                                key={`volunteer-${point.id}`}
-                                coordinate={{
-                                    latitude: point.lat,
-                                    longitude: point.lng,
-                                }}
-                                title={point.title}
-                                description={point.address}
-                                pinColor="blue"
-                            />
-                        ))}
-
-                        {/* Kullanıcı Seçimi */}
                         {selectedLocation && (
                             <Marker
                                 coordinate={selectedLocation}
@@ -102,22 +108,38 @@ const MapScreen = () => {
                         )}
                     </MapView>
 
-                    {/* Bilgi Paneli - Tüm bilgiler tek bir yerde */}
-                    <View style={styles.infoPanel}>
-                        {selectedLocation && (
-                            <>
-                                <Text style={styles.sectionTitle}>SEÇİLEN KONUM</Text>
-                                <Text>Koordinatlar:
-                                    {selectedLocation.latitude.toFixed(6)}, {selectedLocation.longitude.toFixed(6)}
-                                </Text>
-                                <Text>Adres: {address || "Yükleniyor..."}</Text>
-                            </>
-                        )}
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === "ios" ? "padding" : "height"}
+                        keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+                        style={{ flex: 1 }}
+                    >
+                        <KeyboardAwareScrollView
+                            contentContainerStyle={styles.infoPanel}
+                            enableOnAndroid={true}
+                        >
+                            <Text style={styles.sectionTitle}>SEÇİLEN KONUM</Text>
+                            {selectedLocation && (
+                                <>
+                                    <Text>Koordinatlar: {selectedLocation.latitude.toFixed(6)}, {selectedLocation.longitude.toFixed(6)}</Text>
+                                    <Text>Adres: {address || "Yükleniyor..."}</Text>
 
-                        <Text style={styles.sectionTitle}>YAKINDAKİ NOKTALAR</Text>
-                        <Text>Bağış Noktaları: {donationPoints.length}</Text>
-                        <Text>Gönüllülük Projeleri: {volunteerPoints.length}</Text>
-                    </View>
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Başlık girin"
+                                        value={title}
+                                        onChangeText={setTitle}
+                                    />
+
+                                    {/*<View style={styles.buttonRow}>*/}
+                                    {/*    <Button title="Bağış" onPress={() => setType("donation")} />*/}
+                                    {/*    <Button title="Gönüllü" onPress={() => setType("volunteer")} />*/}
+                                    {/*</View>*/}
+                                    <TypeSelector selectedType={type} setType={setType} />
+                                    <Button title="Konumu Kaydet" onPress={saveLocation} />
+                                </>
+                            )}
+                        </KeyboardAwareScrollView>
+                    </KeyboardAvoidingView>
                 </>
             ) : (
                 <Text>Harita yükleniyor...</Text>
@@ -127,23 +149,33 @@ const MapScreen = () => {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
     map: {
-        flex: 1,
+        width: "100%",
+        height: "60%", // Harita ekranın üst yarısında kalır
     },
     infoPanel: {
         padding: 15,
-        backgroundColor: "#f8eced",
+        backgroundColor: "#f0f0f0",
         borderTopWidth: 1,
-        borderColor: "#ddd",
+        borderColor: "#ccc",
+        flexGrow: 1,
     },
     sectionTitle: {
-        fontWeight: 'bold',
-        marginTop: 10,
-        marginBottom: 5,
-        color: '#333',
+        fontWeight: "bold",
+        marginBottom: 8,
+        fontSize: 16,
+    },
+    input: {
+        borderColor: "#aaa",
+        borderWidth: 1,
+        padding: 8,
+        marginVertical: 10,
+        backgroundColor: "white",
+    },
+    buttonRow: {
+        flexDirection: "row",
+        justifyContent: "space-around",
+        marginBottom: 10,
     },
 });
 
