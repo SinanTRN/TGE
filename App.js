@@ -2,8 +2,11 @@ import { StatusBar } from "expo-status-bar";
 import { Text } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import {CardStyleInterpolators, createStackNavigator} from "@react-navigation/stack";
+import {CardStyleInterpolators, createStackNavigator, TransitionPresets} from "@react-navigation/stack";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import AntDesign from '@expo/vector-icons/AntDesign'
+import * as SplashScreen from 'expo-splash-screen'
+import { useState } from "react";
 
 import {
     useFonts as useOswald,
@@ -21,9 +24,10 @@ import RegisterScreen from "./src/screens/RegisterScreen";
 import HomeScreen from "./src/screens/HomeScreen";
 import CategoryScreen from "./src/screens/CategoryScreen";
 
-import { useContext } from "react";
+import {useContext, useEffect} from "react";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import MapScreen from "./src/screens/MapScreen";
+
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -36,7 +40,7 @@ const MainTabs = () => (
         screenOptions={({ route }) => ({
             tabBarIcon: ({ color, size }) => {
                 let iconName;
-                if (route.name === "Home") iconName = "home";
+                if (route.name === "Home") return <AntDesign name="home" size={size} />
                 else if (route.name === "Categories") iconName = "file-tray-stacked-sharp";
                 else if (route.name === "Map") iconName = "map";
                 else if (route.name === "Menu") iconName = "list-sharp";
@@ -59,25 +63,63 @@ const AppNavigator = () => {
     if (isLoading) return null;
 
     return (
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Navigator
+            screenOptions={{
+                headerShown: false,
+                ...TransitionPresets.ScaleFromCenterAndroid,  // Spread ile açıyoruz
+            }}
+        >
             {user ? (
                 <Stack.Screen name="Main" component={MainTabs} />
             ) : (
                 <>
                     <Stack.Screen name="Login" component={LoginScreen} />
-                    <Stack.Screen name="Register" component={RegisterScreen} options={{cardStyleInterpolator:CardStyleInterpolators.forRevealFromBottomAndroid}} />
+                    <Stack.Screen
+                        name="Register"
+                        component={RegisterScreen}
+                        options={{
+                            cardStyleInterpolator: CardStyleInterpolators.forRevealFromBottomAndroid,
+                        }}
+                    />
                 </>
             )}
             <Stack.Screen name="Profile" component={ProfileScreen} />
         </Stack.Navigator>
     );
 };
-
 export default function App() {
     const [oswaldLoaded] = useOswald({ Oswald_400Regular });
     const [latoLoaded] = useLato({ Lato_400Regular });
+    const [appIsReady, setAppIsReady] = useState(false); // ← Koşulun üstüne alındı
 
-    if (!oswaldLoaded || !latoLoaded) return null;
+    useEffect(() => {
+        async function prepare() {
+            try {
+                await SplashScreen.preventAutoHideAsync();
+                // await loadFonts(); gibi işlemler buraya
+            } catch (e) {
+                console.warn(e);
+            } finally {
+                setAppIsReady(true);
+            }
+        }
+
+        prepare();
+    }, []);
+
+    useEffect(() => {
+        if (appIsReady) {
+            setTimeout(() => {
+                SplashScreen.hideAsync();
+            }, 2000);
+
+        }
+    }, [appIsReady]);
+
+    // Şimdi bu koşulda herhangi bir hook çağrılmıyor, sadece render'ı durduruyor
+    if (!oswaldLoaded || !latoLoaded || !appIsReady) {
+        return null;
+    }
 
     return (
         <AuthenticationContextProvider>
@@ -90,3 +132,4 @@ export default function App() {
         </AuthenticationContextProvider>
     );
 }
+

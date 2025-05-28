@@ -9,6 +9,7 @@ import{Alert} from 'react-native';
 import * as ImagePicker from "expo-image-picker";
 import {uploadToCloudinary} from "../services/cloudinary/CloudinaryService";
 import FloatingBackButton from "../ui/FloatingBackButton";
+import {useRoute} from "@react-navigation/native";
 
 
 const ProfileScreen = () => {
@@ -18,6 +19,8 @@ const ProfileScreen = () => {
     const [editing, setEditing] = useState(false);
     const [form, setForm] = useState({});
     const [saving, setSaving] = useState(false);
+    const route = useRoute();
+    const { username } = route.params || {};
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -164,6 +167,9 @@ const ProfileScreen = () => {
         <View style={{flex:1}}>
             <FloatingBackButton />
             <ScrollView contentContainerStyle={styles.container}>
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    {username && <Text>Hoş geldin, {username}!</Text>}
+                </View>
                 <View style={styles.avatarWrapper}>
                     {profile?.photoURL ? (
                         <Image source={{ uri: profile.photoURL }} style={styles.avatar} />

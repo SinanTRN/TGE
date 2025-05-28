@@ -84,7 +84,7 @@ const HomeScreen = () => {
 
     const handleProfile = () => {
         setMenuVisible(false);
-        navigation.navigate("Profile");
+        navigation.navigate("Profile", { username: profile?.name || "User" });
     };
 
     const handleLogout = () => {
